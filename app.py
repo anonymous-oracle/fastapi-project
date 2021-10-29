@@ -1,34 +1,78 @@
 from fastapi import FastAPI, Depends
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
-from crud import create_user, read_user
+from crud import create_response, create_user, read_response, read_user
 from auth import get_current_user, get_token, authenticate_user, HTTPException
-from schemas import User, UserResponse
-
+import models, schemas
 
 app = FastAPI()
 
 
-@app.post("/token")
+@app.post("/login")
 async def generate_token(form_data: OAuth2PasswordRequestForm = Depends()):
     user = await authenticate_user(
         username=form_data.username, password=form_data.password
     )
     if user == False:
         raise HTTPException(status_code=401, detail="Invalid username or password")
-    user_obj = {"id": user.id, "username": user.username}
+    user_obj = {"username": user.username, "password": user.password}
     return get_token(user_obj)
 
 
-@app.post("/users", response_model=UserResponse)
-async def post_user(user: User):
-    return await create_user(username=user.username, password=user.password)
+@app.post("/users", response_model=schemas.UserResponse)
+async def post_user(user: schemas.User):
+    return await create_user(
+        username=user.username, password=user.password, current_question=0
+    )
 
 
-@app.get("/users/me", response_model=UserResponse)
-async def get_user_me(user: User = Depends(get_current_user)):
+@app.get("/users/me", response_model=schemas.UserResponse)
+async def get_user_me(user: models.User = Depends(get_current_user)):
     return user
 
 
-@app.get("/users/{username}", response_model=UserResponse)
+@app.post("/start", response_model=schemas.QuestionResponse)
+async def start_exam(user: models.User = Depends(get_current_user)):
+    user = await read_user(user.id)
+    user.current_question = 1
+    response = await create_response(
+        user_id=user.id, question_num=user.current_question, user=user
+    )
+    models.db.commit()
+    return response
+
+
+@app.post("/submit/{option}", response_model=schemas.QuestionResponse)
+async def submit_answer(option: int, user: models.User = Depends(get_current_user)):
+    response = await read_response(user_id=user.id, question_num=user.current_question)
+    response.option_num = option
+    models.db.commit()
+    return response
+
+
+@app.get("/next", response_model=schemas.QuestionResponse)
+async def next_question(user: models.User = Depends(get_current_user)):
+    user.current_question += 1
+    response = await read_response(user_id=user.id, question_num=user.id)
+    if response == None:
+        response = await create_response(
+            user_id=user.id, question_num=user.current_question, user=user
+        )
+    models.db.commit()
+    return response
+
+
+@app.get("/previous", response_model=schemas.QuestionResponse)
+async def next_question(user: models.User = Depends(get_current_user)):
+    user.current_question -= 1
+    response = await read_response(user_id=user.id, question_num=user.id)
+    # if response == None:
+    #     response = await create_response(
+    #         user_id=user.id, question_num=user.current_question, user=user
+    #     )
+    models.db.commit()
+    return response
+
+
+@app.get("/users/{username}", response_model=schemas.UserResponse)
 async def get_user(username: str):
     return await read_user(username=username)

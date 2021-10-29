@@ -1,6 +1,5 @@
 import hashlib
 from uuid import uuid4
-
 from config import SECRET_KEY
 
 

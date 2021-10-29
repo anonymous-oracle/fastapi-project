@@ -1,34 +1,36 @@
 from fastapi.param_functions import Depends
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordBearer
 import jwt
 from fastapi.exceptions import HTTPException
-from hashing import verify
+from config import JWT_ALGORITHM, SECRET_KEY
+from hashing import check_pwd
 from crud import read_user
 
 
 # `openssl rand -hex 32` -> to generate the secret
-JWT_SECRET_KEY = "ca0264b9fbc96884dc27b5d09c1b480f53f43c178c9947c4bd05f3c49b77034b"
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 
 async def authenticate_user(username: str, password: str):
     user = await read_user(username=username)
     if user == None:
         return False
-    if verify(password, user.password) == False:
+    if check_pwd(password, user.password, user.salt) == False:
         return False
     return user
 
 
 def get_token(payload: dict):
     """payload: must be a dict object"""
-    token = jwt.encode(payload=payload, key=JWT_SECRET_KEY)
+    token = jwt.encode(payload=payload, key=SECRET_KEY.decode("utf-8"), algorithm=JWT_ALGORITHM)
     return {"access_token": token, "token_type": "bearer"}
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     try:
-        payload = jwt.decode(token, key=JWT_SECRET_KEY, algorithms=["HS256"])
+        payload = jwt.decode(
+            token, key=SECRET_KEY.decode("utf-8"), algorithms=[JWT_ALGORITHM]
+        )
         user = await read_user(id=payload.get("id"))
     except:
         raise HTTPException(status_code=401, detail="Invalid username or password")
