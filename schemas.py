@@ -19,10 +19,11 @@ class User(BaseUser):
 class UserResponse(BaseUser):
     id: int
     username: str
+    current_question: int
 
 
 class QuestionResponse(BaseQuestionResponse):
     id: int
     user_id: int
-    answer_num: int = 0
+    option_num: int = 0
     question_num: int

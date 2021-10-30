@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, BLOB
+from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -31,8 +31,8 @@ class User(Base):
     id = Column(Integer, primary_key=True, nullable=False, autoincrement=True)
     current_question = Column(Integer, nullable=False)
     username = Column(String, nullable=False, unique=True)
-    password = Column(BLOB, nullable=False)
-    salt = Column(BLOB, nullable=False)
+    password = Column(String, nullable=False)
+    salt = Column(String, nullable=False)
 
     responses = relationship("Response")
 

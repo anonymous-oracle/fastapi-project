@@ -22,15 +22,13 @@ async def authenticate_user(username: str, password: str):
 
 def get_token(payload: dict):
     """payload: must be a dict object"""
-    token = jwt.encode(payload=payload, key=SECRET_KEY.decode("utf-8"), algorithm=JWT_ALGORITHM)
+    token = jwt.encode(payload=payload, key=SECRET_KEY, algorithm=JWT_ALGORITHM)
     return {"access_token": token, "token_type": "bearer"}
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     try:
-        payload = jwt.decode(
-            token, key=SECRET_KEY.decode("utf-8"), algorithms=[JWT_ALGORITHM]
-        )
+        payload = jwt.decode(token, key=SECRET_KEY, algorithms=[JWT_ALGORITHM])
         user = await read_user(id=payload.get("id"))
     except:
         raise HTTPException(status_code=401, detail="Invalid username or password")
